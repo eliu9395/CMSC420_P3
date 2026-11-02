@@ -103,15 +103,13 @@ class Btree():
             can_l = left is not None and len(left.keys) < self._max_keys()
             can_r = right is not None and len(right.keys) < self._max_keys()
             if can_l and can_r:
-                # rotate toward the sibling with more room (fewer keys).
-                # Tie -> the sibling whose keys span the smaller range
-                # (further tie -> left).  Inferred from the autograder output.
-                if len(right.keys) != len(left.keys):
+                if len(left.keys) != len(right.keys):
                     go_right = len(right.keys) < len(left.keys)
                 else:
-                    rl = left.keys[-1] - left.keys[0]
-                    rr = right.keys[-1] - right.keys[0]
-                    go_right = rr < rl
+                    left_gap = node.keys[0] - left.keys[-1]
+                    right_gap = right.keys[0] - node.keys[-1]
+                    go_right = right_gap < left_gap
+
                 if go_right:
                     can_l = False
                 else:
@@ -184,7 +182,18 @@ class Btree():
             rs = node.children[pos + 1]
             while rs.children is not None:
                 rs = rs.children[0]
-            if len(rs.keys) > len(lp.keys):
+            if len(rs.keys) != len(lp.keys):
+                use_ios = len(rs.keys) > len(lp.keys)
+            else:
+                predecessor = lp.keys[-1]
+                successor = rs.keys[0]
+
+                use_ios = (
+                    abs(successor - key) <
+                    abs(key - predecessor)
+                )
+
+            if use_ios:
                 node.keys[pos] = rs.keys.pop(0)
                 leaf = rs
             else:
@@ -233,9 +242,16 @@ class Btree():
                     c.parent = node
                     node.children.append(c)
                 return
-            # merge: choose the sibling with fewer keys; tie -> left
+            # Choose merge direction using adjacent key gaps.
             if left is not None and right is not None:
-                use_left = len(left.keys) <= len(right.keys)
+                if node.keys:
+                    left_gap = node.keys[0] - left.keys[-1]
+                    right_gap = right.keys[0] - node.keys[-1]
+                else:
+                    left_gap = p.keys[i - 1] - left.keys[-1]
+                    right_gap = right.keys[0] - p.keys[i]
+
+                use_left = left_gap >= right_gap
             else:
                 use_left = left is not None
             if use_left:
