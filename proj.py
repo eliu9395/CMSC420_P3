@@ -103,14 +103,8 @@ class Btree():
             can_l = left is not None and len(left.keys) < self._max_keys()
             can_r = right is not None and len(right.keys) < self._max_keys()
             if can_l and can_r:
-                if len(left.keys) != len(right.keys):
-                    go_right = len(right.keys) < len(left.keys)
-                else:
-                    left_gap = node.keys[0] - left.keys[-1]
-                    right_gap = right.keys[0] - node.keys[-1]
-                    go_right = right_gap < left_gap
-
-                if go_right:
+                # Rotate toward the sibling with fewer keys; tie -> left.
+                if len(right.keys) < len(left.keys):
                     can_l = False
                 else:
                     can_r = False
@@ -182,18 +176,7 @@ class Btree():
             rs = node.children[pos + 1]
             while rs.children is not None:
                 rs = rs.children[0]
-            if len(rs.keys) != len(lp.keys):
-                use_ios = len(rs.keys) > len(lp.keys)
-            else:
-                predecessor = lp.keys[-1]
-                successor = rs.keys[0]
-
-                use_ios = (
-                    abs(successor - key) <
-                    abs(key - predecessor)
-                )
-
-            if use_ios:
+            if len(rs.keys) > len(lp.keys):
                 node.keys[pos] = rs.keys.pop(0)
                 leaf = rs
             else:
@@ -243,15 +226,9 @@ class Btree():
                     node.children.append(c)
                 return
             # Choose merge direction using adjacent key gaps.
+            # Merge: choose the sibling with fewer keys; tie -> left.
             if left is not None and right is not None:
-                if node.keys:
-                    left_gap = node.keys[0] - left.keys[-1]
-                    right_gap = right.keys[0] - node.keys[-1]
-                else:
-                    left_gap = p.keys[i - 1] - left.keys[-1]
-                    right_gap = right.keys[0] - p.keys[i]
-
-                use_left = left_gap >= right_gap
+                use_left = len(left.keys) <= len(right.keys)
             else:
                 use_left = left is not None
             if use_left:
